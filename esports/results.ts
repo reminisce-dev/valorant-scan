@@ -6,12 +6,18 @@ export const latestTeams = {
   team2: "TEAM_2",
 };
 
+// return date in YYYY-MM-DD format
 function getFormattedDate(): string {
   const date = new Date();
 
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
 
+/* 
+  scrape vlr dot gee gee using cheerio (shoutout for making it just a little bit easier)
+  and grab all map data... also freaking vlr dot gee gee
+  has so much white space so format it properly
+*/
 async function getMatchPage(matchPage: string): Promise<string> {
   try {
     const response = await fetch(matchPage);
@@ -23,7 +29,8 @@ async function getMatchPage(matchPage: string): Promise<string> {
     const $ = load(htmlContent);
     let result = "";
 
-    // i hate you vlr dot gee gee
+    // i hate you vlr dot gee gee as well as api guy
+    // grr why do you not provide this already!! (jokey joke)
     $(".vm-stats-game").each((i, mapElement) => {
       const mapSection = $(mapElement);
       let mapName = mapSection
@@ -53,6 +60,11 @@ async function getMatchPage(matchPage: string): Promise<string> {
 
         result =
           result + `[${mapName}: ${team1} ${score1} - ${score2} ${team2}]`;
+        /*
+        will return something like
+        [Lotus: TBK Esports 15 - 13 MIBR Academy]
+        [Haven: TBK Esports 14 - 12 MIBR Academy]
+        */
       }
     });
 
@@ -63,6 +75,8 @@ async function getMatchPage(matchPage: string): Promise<string> {
   }
 }
 
+// fetch api and check for team name changes, meaning new results were added
+// and then return those results formatted
 export async function fetchResults(): Promise<string | null> {
   try {
     const response = await fetch(apiUrl);
@@ -98,20 +112,24 @@ export async function fetchResults(): Promise<string | null> {
     }
 
     // comment out this part to test for latest result
-    if (latestTeams.team1 === team1) {
-      return null;
-    }
+    // if (latestTeams.team1 === team1) {
+    //   return null;
+    // }
 
     /* rewrote all of this just for maps xdd
     maybe ill add it to the return later but
     just wanted to see if i could do it
-    const mapResults = await getMatchPage(matchPage); */
+    REMOVE THESE COMMENTS IF YOU WANT MAPS
+    (also make sure to add it to return statement) */
+
+    // const mapResults = await getMatchPage(matchPage);
 
     latestTeams.team1 = team1;
     latestTeams.team2 = team2;
 
     let team1Won = score1 > score2;
 
+    // can you tell i just learned about ternary operator
     return `[Valorant Esports Match: ${currentDate}]\n${
       team1Won ? team1 : team2
     } ${team1Won ? score1 : score2}-${team1Won ? score2 : score1} ${
