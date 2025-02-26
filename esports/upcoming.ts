@@ -9,11 +9,13 @@ interface MatchData {
 const apiUrl = "https://vlrggapi.vercel.app/match?q=upcoming";
 export let latestMatches: MatchData[] = [];
 
+/* Get date in YYYY-MM-DD format */
 function getFormattedDate(): string {
   const date = new Date();
   return `${date.getFullYear()}-${date.getMonth() + 1}-${date.getDate()}`;
 }
 
+/* Fetch upcoming matches from apiUrl (vlrggapi.vercel.app) */
 export async function fetchUpcoming(): Promise<string | null> {
   try {
     const response = await fetch(apiUrl);
@@ -26,6 +28,8 @@ export async function fetchUpcoming(): Promise<string | null> {
       return null;
     }
 
+    /* Sort the jsonResponse in unix_timestamp order because 
+    vlr dot gee gee groups tournaments and stuff.. */
     if (jsonResponse.data?.segments?.length) {
       jsonResponse.data.segments.sort((a: any, b: any) => {
         const aTime = new Date(a.unix_timestamp).getTime();
@@ -37,6 +41,7 @@ export async function fetchUpcoming(): Promise<string | null> {
       return null;
     }
 
+    /* Throw the segments into allMatches */
     const allMatches: MatchData[] = jsonResponse.data.segments.map(
       (match: any) => ({
         team1: match.team1,
@@ -47,9 +52,11 @@ export async function fetchUpcoming(): Promise<string | null> {
       })
     );
 
-    allMatches.sort((a, b) => a.unix_timestamp - b.unix_timestamp);
-
+    // store the earliest upcoming match
     const earliestTime = allMatches[0].unix_timestamp;
+
+    /* compare all upcoming matches with the same time as the closest
+    to starting to see if there are any that start at the same time */
     const upcomingMatches = allMatches.filter(
       (match) => match.unix_timestamp === earliestTime
     );
@@ -57,6 +64,9 @@ export async function fetchUpcoming(): Promise<string | null> {
     const currentDate = getFormattedDate();
     const messages: string[] = [];
 
+    /* compare teams in latestMatch to teams in upcomingMatch (data that was just fetched)
+    and if there are any missing that means those teams' games have started and
+    we can put those into startedMatches */
     const startedMatches = latestMatches.filter(
       (latestMatch) =>
         !upcomingMatches.some(
