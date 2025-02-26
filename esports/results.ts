@@ -60,11 +60,7 @@ async function getMatchPage(matchPage: string): Promise<string> {
 
         result =
           result + `[${mapName}: ${team1} ${score1} - ${score2} ${team2}]`;
-        /*
-        will return something like
-        [Lotus: TBK Esports 15 - 13 MIBR Academy]
-        [Haven: TBK Esports 14 - 12 MIBR Academy]
-        */
+        // will return something like
       }
     });
 
@@ -111,10 +107,9 @@ export async function fetchResults(): Promise<string | null> {
       latestTeams.team2 = team2;
     }
 
-    // comment out this part to test for latest result
-    // if (latestTeams.team1 === team1) {
-    //   return null;
-    // }
+    if (latestTeams.team1 === team1) {
+      return null;
+    }
 
     /* rewrote all of this just for maps xdd
     maybe ill add it to the return later but
