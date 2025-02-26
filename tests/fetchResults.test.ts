@@ -73,7 +73,7 @@ describe("fetchResults", () => {
     const currentDate = new Date();
     const formattedDate = `${currentDate.getFullYear()}-${
       currentDate.getMonth() + 1
-    }-${currentDate.getDate() + 1}`;
+    }-${currentDate.getDate()}`;
 
     expect(result).toBe(
       `[Valorant Esports Match: ${formattedDate}]\nT1 2-0 Trace Esports\n\n(Swiss Stage-Round 2)\n[Champions Tour 2025: Masters Bangkok]`
