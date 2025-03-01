@@ -35,12 +35,24 @@ async function processMatchResults() {
 }
 
 async function processUpcomingMatches() {
-  const message = await fetchUpcoming();
-  if (message) {
-    console.log("Posting upcoming match:", message);
-    await agent.post({
-      text: message,
-    });
+  const messages = await fetchUpcoming();
+  if (messages) {
+    for (const message of messages) {
+      if (message.length > 300) {
+        console.warn(
+          "Message exceeds 300 characters, unable to post:",
+          message
+        );
+        continue;
+      }
+
+      console.log("Posting upcoming match:", message);
+      await agent.post({
+        text: message,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+    }
   } else {
     console.log("No new upcoming matches.");
   }
