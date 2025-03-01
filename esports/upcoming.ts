@@ -16,7 +16,7 @@ function getFormattedDate(): string {
 }
 
 /* Fetch upcoming matches from apiUrl (vlrggapi.vercel.app) */
-export async function fetchUpcoming(): Promise<string | null> {
+export async function fetchUpcoming(): Promise<string[] | null> {
   try {
     const response = await fetch(apiUrl);
     if (!response.ok)
@@ -52,17 +52,18 @@ export async function fetchUpcoming(): Promise<string | null> {
       })
     );
 
-    // store the earliest upcoming match
+    allMatches.sort((a, b) => a.unix_timestamp - b.unix_timestamp);
+
     const earliestTime = allMatches[0].unix_timestamp;
 
     /* compare all upcoming matches with the same time as the closest
     to starting to see if there are any that start at the same time */
+
     const upcomingMatches = allMatches.filter(
       (match) => match.unix_timestamp === earliestTime
     );
 
     const currentDate = getFormattedDate();
-    const messages: string[] = [];
 
     /* compare teams in latestMatch to teams in upcomingMatch (data that was just fetched)
     and if there are any missing that means those teams' games have started and
@@ -76,17 +77,21 @@ export async function fetchUpcoming(): Promise<string | null> {
         )
     );
 
+    const messages: string[] = [];
+
     if (startedMatches.length > 0) {
       for (const match of startedMatches) {
-        messages.push(
-          `[Valorant Esports Match: ${currentDate}]\n${match.team1} vs ${match.team2} has just started.\n\n(${match.match_series})\n[${match.match_event}]`
-        );
+        if (match.team1 !== "TBD" && match.team2 !== "TBD") {
+          messages.push(
+            `[Valorant Esports Match: ${currentDate}]\n${match.team1} vs ${match.team2} has just started.\n\n(${match.match_series})\n[${match.match_event}]`
+          );
+        }
       }
     }
 
     latestMatches = upcomingMatches;
 
-    return messages.length ? messages.join("\n\n") : null;
+    return messages.length ? messages : null;
   } catch (error) {
     console.error("Error fetching matches:", error);
     return null;
