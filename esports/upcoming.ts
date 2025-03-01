@@ -52,8 +52,6 @@ export async function fetchUpcoming(): Promise<string[] | null> {
       })
     );
 
-    allMatches.sort((a, b) => a.unix_timestamp - b.unix_timestamp);
-
     const earliestTime = allMatches[0].unix_timestamp;
 
     /* compare all upcoming matches with the same time as the closest
@@ -97,3 +95,5 @@ export async function fetchUpcoming(): Promise<string[] | null> {
     return null;
   }
 }
+
+fetchUpcoming();
