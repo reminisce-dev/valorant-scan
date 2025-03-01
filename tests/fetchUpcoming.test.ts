@@ -1,141 +1,177 @@
-import { fetchUpcoming, latestMatches } from "../esports/upcoming";
+import { fetchUpcoming, latestTeams } from "../esports/upcoming";
+
 global.fetch = jest.fn();
 
-beforeEach(() => {
-  latestMatches.length = 0;
-});
-
 describe("fetchUpcoming", () => {
-  it("should return null when there are no upcoming matches", async () => {
+  beforeEach(() => {
+    latestTeams.team1 = "TEAM_1";
+    latestTeams.team2 = "TEAM_2";
+    jest.clearAllMocks();
+  });
+
+  it("should return null and update latest teams if no previous teams are set", async () => {
+    // Mock a successful API response
+    const mockData = {
+      data: {
+        status: 200,
+        segments: [
+          {
+            team1: "T1",
+            team2: "Trace Esports",
+            match_series: "Swiss Stage: Round 2 (0-1)",
+            match_event: "Champions Tour 2025: Masters Bangkok",
+          },
+        ],
+      },
+    };
+
     (fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({ data: { segments: [] } }),
+      json: () => Promise.resolve(mockData),
     });
 
     const result = await fetchUpcoming();
+
     expect(result).toBeNull();
+    expect(latestTeams.team1).toBe("T1");
+    expect(latestTeams.team2).toBe("Trace Esports");
   });
 
-  it("should return null on the first API call even if matches exist", async () => {
+  it("should return a formatted message if teams have changed", async () => {
+    latestTeams.team1 = "Team Liquid";
+    latestTeams.team2 = "Sentinels";
+
+    const mockData = {
+      data: {
+        status: 200,
+        segments: [
+          {
+            team1: "T1",
+            team2: "Trace Esports",
+            match_series: "Swiss Stage: Round 2 (0-1)",
+            match_event: "Champions Tour 2025: Masters Bangkok",
+          },
+        ],
+      },
+    };
+
     (fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({
-        data: {
-          segments: [
-            {
-              team1: "Team Alpha",
-              team2: "Team Beta",
-              unix_timestamp: "2025-02-25 19:00:00",
-              match_series: "Group Stage",
-              match_event: "Game Changers",
-            },
-          ],
-        },
-      }),
-    });
-
-    const firstCall = await fetchUpcoming();
-    expect(firstCall).toBeNull(); // First call should just store the matches
-  });
-
-  it("should detect a single new match on the second API call", async () => {
-    // First call (just stores matches)
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        data: {
-          segments: [
-            {
-              team1: "Team Alpha",
-              team2: "Team Beta",
-              unix_timestamp: "2025-02-25 19:00:00",
-              match_series: "Group Stage",
-              match_event: "Game Changers",
-            },
-          ],
-        },
-      }),
-    });
-
-    await fetchUpcoming();
-
-    // Second call (new match detected)
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        data: {
-          segments: [
-            {
-              team1: "Team Gamma",
-              team2: "Team Delta",
-              unix_timestamp: "2025-02-25 20:00:00",
-              match_series: "Group Stage",
-              match_event: "Game Changers",
-            },
-          ],
-        },
-      }),
+      json: () => Promise.resolve(mockData),
     });
 
     const result = await fetchUpcoming();
-    expect(result).toContain("Team Alpha vs Team Beta has just started");
+
+    const currentDate = new Date();
+    const formattedDate = `${currentDate.getFullYear()}-${
+      currentDate.getMonth() + 1
+    }-${currentDate.getDate() + 1}`;
+
+    expect(result).toBe(
+      `[Valorant Esports Match: ${formattedDate}]\nTeam Liquid vs Sentinels has just started.\n\n(Swiss Stage: Round 2 (0-1))\n[Champions Tour 2025: Masters Bangkok]`
+    );
+    expect(latestTeams.team1).toBe("T1");
+    expect(latestTeams.team2).toBe("Trace Esports");
   });
 
-  it("should detect two new matches starting at the same time", async () => {
-    // First call (just stores matches)
+  it("should return null if teams have not changed", async () => {
+    latestTeams.team1 = "T1";
+    latestTeams.team2 = "Trace Esports";
+
+    const mockData = {
+      data: {
+        status: 200,
+        segments: [
+          {
+            team1: "T1",
+            team2: "Trace Esports",
+            match_series: "Swiss Stage: Round 2 (0-1)",
+            match_event: "Champions Tour 2025: Masters Bangkok",
+          },
+        ],
+      },
+    };
+
     (fetch as jest.Mock).mockResolvedValueOnce({
       ok: true,
-      json: async () => ({
-        data: {
-          segments: [
-            {
-              team1: "Team Alpha",
-              team2: "Team Beta",
-              unix_timestamp: "2025-02-25 18:00:00",
-              match_series: "Group Stage",
-              match_event: "Game Changers",
-            },
-            {
-              team1: "Team Gamma",
-              team2: "Team Delta",
-              unix_timestamp: "2025-02-25 18:00:00",
-              match_series: "Group Stage",
-              match_event: "Game Changers",
-            },
-          ],
-        },
-      }),
-    });
-
-    await fetchUpcoming(); // First call - should return null
-
-    // Second call (two new matches detected)
-    (fetch as jest.Mock).mockResolvedValueOnce({
-      ok: true,
-      json: async () => ({
-        data: {
-          segments: [
-            {
-              team1: "Team Omega",
-              team2: "Team Sigma",
-              unix_timestamp: "2025-02-25 19:00:00",
-              match_series: "Finals",
-              match_event: "Championship",
-            },
-            {
-              team1: "Team Sigmund",
-              team2: "Team Freud",
-              unix_timestamp: "2025-02-25 19:00:00",
-              match_series: "Finals",
-              match_event: "Championship",
-            },
-          ],
-        },
-      }),
+      json: () => Promise.resolve(mockData),
     });
 
     const result = await fetchUpcoming();
-    expect(result).toContain("Team Alpha vs Team Beta has just started");
-    expect(result).toContain("Team Gamma vs Team Delta has just started");
+
+    expect(result).toBeNull();
+    expect(latestTeams.team1).toBe("T1");
+    expect(latestTeams.team2).toBe("Trace Esports");
+  });
+
+  it("should return null and log a warning if no upcoming matches are found", async () => {
+    const mockData = {
+      data: {
+        status: 200,
+        segments: [],
+      },
+    };
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockData),
+    });
+
+    const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await fetchUpcoming();
+
+    expect(result).toBeNull();
+    expect(consoleSpy).toHaveBeenCalledWith("No upcoming matches found.");
+    consoleSpy.mockRestore();
+  });
+
+  it("should return null and log a warning if invalid match data is received", async () => {
+    const mockData = {
+      data: {
+        status: 200,
+        segments: [
+          {
+            team1: null,
+            team2: "Trace Esports",
+            match_series: "Swiss Stage: Round 2 (0-1)",
+            match_event: "Champions Tour 2025: Masters Bangkok",
+          },
+        ],
+      },
+    };
+
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: true,
+      json: () => Promise.resolve(mockData),
+    });
+
+    const consoleSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
+
+    const result = await fetchUpcoming();
+
+    expect(result).toBeNull();
+    expect(consoleSpy).toHaveBeenCalledWith("Invalid match data received.");
+    consoleSpy.mockRestore();
+  });
+
+  it("should return null and log an error if the API call fails", async () => {
+    (fetch as jest.Mock).mockResolvedValueOnce({
+      ok: false,
+      statusText: "Not Found",
+    });
+
+    const consoleSpy = jest
+      .spyOn(console, "error")
+      .mockImplementation(() => {});
+
+    const result = await fetchUpcoming();
+
+    expect(result).toBeNull();
+    expect(consoleSpy).toHaveBeenCalledWith(
+      "Error fetching matches:",
+      expect.any(Error)
+    );
+    consoleSpy.mockRestore();
   });
 });
